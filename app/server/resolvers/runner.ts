@@ -29,7 +29,7 @@ export const runnerResolver = async (
   // TODO get runner from pool by session key (run_id or test_id_branch)
   // we need to track this centrally to send to the same region
   return {
-    vnc_url: "ws://localhost:5000",
-    ws_url: "ws://localhost:4000/socket.io",
+    vnc_url: "ws://localhost:5100/vnc",
+    ws_url: "ws://localhost:5100/socket.io",
   };
 };
