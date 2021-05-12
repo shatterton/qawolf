@@ -1,6 +1,7 @@
 import { EventEmitter } from "events";
 import { debounce } from "lodash";
 import type { editor as editorNs } from "monaco-editor/esm/vs/editor/editor.api";
+import * as Y from "yjs";
 
 import { saveEditorMutation } from "../../../graphql/mutations";
 import { editorQuery } from "../../../graphql/queries";
@@ -8,8 +9,13 @@ import { SaveEditorVariables } from "../../../hooks/mutations";
 import { client } from "../../../lib/client";
 import { Editor } from "../../../lib/types";
 import { VersionedMap } from "../../../lib/VersionedMap";
+import { WebsocketProvider } from "y-websocket";
+import { MonacoBinding } from "../hooks/MonacoBinding";
+
+(window as any).Y = Y;
 
 export class EditorController extends EventEmitter {
+  readonly _doc = new Y.Doc();
   readonly _state = new VersionedMap();
 
   _branch: string;
@@ -17,18 +23,29 @@ export class EditorController extends EventEmitter {
   _saveCount = -1;
   _testEditor: editorNs.IStandaloneCodeEditor;
   _value: Editor;
+  _provider: WebsocketProvider;
 
   constructor() {
     super();
+
+    (window as any)._doc = this._doc;
+
+    this._provider = new WebsocketProvider(
+      `${location.protocol === "http:" ? "ws:" : "wss:"}//localhost:1234`,
+      "monaco6",
+      this._doc,
+      {
+        params: {
+          authorization: "1234",
+        },
+      }
+    );
 
     // sync state to the editors
     this._state.on("changed", ({ key, value, sender }) => {
       if (key === "helpers_code" && this._helpersEditor) {
         const currentValue = this._helpersEditor.getValue();
         if (currentValue !== value) this._helpersEditor.setValue(value);
-      } else if (key === "test_code" && this._testEditor) {
-        const currentValue = this._testEditor.getValue();
-        if (currentValue !== value) this._testEditor.setValue(value);
       }
 
       if (key === "save_count") {
@@ -110,17 +127,27 @@ export class EditorController extends EventEmitter {
     });
   }
 
-  setTestEditor(editor: editorNs.IStandaloneCodeEditor): void {
+  setTestEditor(monaco, editor: editorNs.IStandaloneCodeEditor): void {
+    console.log("set test editor");
     this._testEditor = editor;
 
-    // hydrate with current value
-    const value = this._state.get("test_code");
-    if (value !== undefined) editor.setValue(value);
+    const type = this._doc.getText("monaco");
+    const monacoBinding = new MonacoBinding(
+      monaco,
+      type,
+      editor.getModel(),
+      new Set([editor]),
+      this._provider.awareness
+    );
 
-    // update state when editor changes
-    editor.onDidChangeModelContent(() => {
-      this._state.set("test_code", editor.getValue());
-    });
+    // // hydrate with current value
+    // const value = this._state.get("test_code");
+    // if (value !== undefined) editor.setValue(value);
+
+    // // update state when editor changes
+    // editor.onDidChangeModelContent(() => {
+    //   this._state.set("test_code", editor.getValue());
+    // });
   }
 
   _autoSave = debounce(() => {

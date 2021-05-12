@@ -71,7 +71,10 @@
     "stripe": "^8.140.0",
     "styled-components": "^5.2.1",
     "uuid": "^8.3.1",
-    "video.js": "^7.10.2"
+    "video.js": "^7.10.2",
+    "y-protocols": "^1.0.4",
+    "y-websocket": "^1.3.11",
+    "yjs": "^13.5.5"
   },
   "devDependencies": {
     "@babel/core": "^7.13.1",

@@ -30,7 +30,7 @@ export default function CodeEditor({
   useGlyphs({ code, editor, progress });
 
   const editorDidMount = ({ editor, monaco }) => {
-    controller.setTestEditor(editor);
+    controller.setTestEditor(monaco, editor);
 
     setEditor(editor);
     setMonaco(monaco);
