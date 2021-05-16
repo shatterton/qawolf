@@ -1,4 +1,4 @@
-import { createContext, FC, useContext, useEffect } from "react";
+import { createContext, FC, useContext } from "react";
 
 import { RunProgress } from "../../../lib/types";
 import { ConnectRunnerHook, useConnectRunner } from "../hooks/connectRunner";
@@ -44,7 +44,7 @@ export const RunnerProvider: FC = ({ children }) => {
   const { mouseLineNumber, onSelectionChange, selection } = useSelection();
   const { isRunnerConnected, runner } = useRunner();
 
-  const { controller, run, suite, team } = useContext(TestContext);
+  const { run, suite, team } = useContext(TestContext);
 
   const {
     elementChooserValue,
@@ -71,12 +71,6 @@ export const RunnerProvider: FC = ({ children }) => {
     requestTestRunner,
     runner,
   });
-
-  useEffect(() => {
-    if (!controller || !runner) return;
-
-    runner.syncState(controller._state);
-  }, [controller, runner]);
 
   const value = {
     apiKey,

@@ -1,111 +1,36 @@
 import { EventEmitter } from "events";
-import { debounce } from "lodash";
 import type { editor as editorNs } from "monaco-editor/esm/vs/editor/editor.api";
 import * as Y from "yjs";
 
-import { saveEditorMutation } from "../../../graphql/mutations";
-import { editorQuery } from "../../../graphql/queries";
-import { SaveEditorVariables } from "../../../hooks/mutations";
-import { client } from "../../../lib/client";
 import { Editor } from "../../../lib/types";
 import { WebsocketProvider } from "y-websocket";
 import { MonacoBinding } from "../hooks/MonacoBinding";
-
-(window as any).Y = Y;
+import { JWT_KEY } from "../../../lib/client";
 
 export class EditorController extends EventEmitter {
   readonly _doc = new Y.Doc();
 
   _branch: string;
+
   _helpersEditor: editorNs.IStandaloneCodeEditor;
-  _saveCount = -1;
+  _helpersProvider: WebsocketProvider;
+
   _testEditor: editorNs.IStandaloneCodeEditor;
+  _testProvider: WebsocketProvider;
+
   _value: Editor;
-  _provider: WebsocketProvider;
-
-  constructor() {
-    super();
-
-    (window as any)._doc = this._doc;
-
-    this._provider = new WebsocketProvider(
-      `${location.protocol === "http:" ? "ws:" : "wss:"}//localhost:1234`,
-      "monaco6",
-      this._doc,
-      {
-        params: {
-          authorization: "1234",
-        },
-      }
-    );
-
-    // sync state to the editors
-    this._state.on("changed", ({ key, value, sender }) => {
-      if (key === "helpers_code" && this._helpersEditor) {
-        const currentValue = this._helpersEditor.getValue();
-        if (currentValue !== value) this._helpersEditor.setValue(value);
-      }
-
-      if (key === "save_count") {
-        if (value > this._saveCount) {
-          this._saveCount = value;
-          this._reload();
-        }
-
-        // prevent change causing infinite save loop
-        return;
-      }
-
-      this.emit("changed", { key, value });
-
-      if (sender) this._autoSave();
-    });
-  }
+  _monacoBinding: MonacoBinding;
 
   get code(): string {
-    return this._state.get("test_code") || "";
+    return "";
+  }
+
+  destroy(): void {
+    this._testProvider.destroy();
   }
 
   get helpers(): string {
-    return this._state.get("helpers_code") || "";
-  }
-
-  getChanges(): Partial<SaveEditorVariables> {
-    if (this._value?.run) return null;
-
-    const changes: Partial<SaveEditorVariables> = {};
-
-    const name = this._value?.test.name;
-    if (typeof name === "string" && this._state.get("name") !== name) {
-      changes.name = this._state.get("name");
-    }
-
-    const path = this._value?.test.path;
-    if (typeof path === "string" && this._state.get("path") !== path) {
-      changes.path = this._state.get("path");
-    }
-
-    if (this._state.get("helpers_code") !== this._value?.helpers) {
-      changes.helpers = this._state.get("helpers_code");
-    }
-
-    if (this._state.get("test_code") !== this._value?.test.code) {
-      changes.code = this._state.get("test_code");
-    }
-
-    return Object.keys(changes).length ? changes : null;
-  }
-
-  async _reload(): Promise<void> {
-    const run_id = this._value?.run?.id || null;
-    const test_id = this._value?.test?.id || null;
-    if (!run_id && !test_id) return;
-
-    await client.query({
-      fetchPolicy: "network-only",
-      query: editorQuery,
-      variables: { branch: this._branch, run_id, test_id },
-    });
+    return "";
   }
 
   setBranch(branch: string): void {
@@ -116,87 +41,54 @@ export class EditorController extends EventEmitter {
     this._helpersEditor = editor;
 
     // hydrate with current value
-    const value = this._state.get("helpers_code");
-    if (value !== undefined) editor.setValue(value);
-
-    // update state when editor changes
-    editor.onDidChangeModelContent(() => {
-      this._state.set("helpers_code", editor.getValue());
-    });
-  }
-
-  setTestEditor(monaco, editor: editorNs.IStandaloneCodeEditor): void {
-    console.log("set test editor");
-    this._testEditor = editor;
-
-    const type = this._doc.getText("monaco");
-    const monacoBinding = new MonacoBinding(
-      monaco,
-      type,
-      editor.getModel(),
-      new Set([editor]),
-      this._provider.awareness
-    );
-
-    // // hydrate with current value
-    // const value = this._state.get("test_code");
+    // const value = this._state.get("helpers_code");
     // if (value !== undefined) editor.setValue(value);
 
-    // // update state when editor changes
+    // update state when editor changes
     // editor.onDidChangeModelContent(() => {
-    //   this._state.set("test_code", editor.getValue());
+    //   this._state.set("helpers_code", editor.getValue());
     // });
   }
 
-  _autoSave = debounce(() => {
-    if (this._branch) return;
+  setTestEditor(monaco, editor: editorNs.IStandaloneCodeEditor): void {
+    if (!this._testProvider) {
+      throw new Error(
+        "Need to update to allow setting test editor and test id out of order"
+      );
+    }
 
-    this.save();
-  }, 100);
-
-  async save(): Promise<void> {
-    if (this._value?.run) return;
-
-    const test_id = this._value?.test.id;
-    if (!test_id) return;
-
-    const changes = this.getChanges();
-    if (!changes) return;
-
-    await client.mutate({
-      mutation: saveEditorMutation,
-      variables: { ...changes, branch: this._branch, test_id },
-    });
-
-    this._saveCount += 1;
-    this._state.set("save_count", this._saveCount);
+    this._testEditor = editor;
+    this._monacoBinding = new MonacoBinding(
+      monaco,
+      this._doc.getText("monaco"),
+      editor.getModel(),
+      new Set([editor]),
+      this._testProvider.awareness
+    );
   }
 
   setValue(value: Editor): void {
+    // TODO make sure the test does not change...
+    console.log("set value", value?.test.id);
+
+    if (value && !this._testProvider) {
+      this._testProvider = new WebsocketProvider(
+        `${location.protocol === "http:" ? "ws:" : "wss:"}//localhost:1234`,
+        // TODO add branch...
+        `test.${value.test.id}`,
+        this._doc,
+        { params: { authorization: localStorage.getItem(JWT_KEY) } }
+      );
+    }
+
     this._value = value;
 
-    if (this._state.get("name") === undefined) {
-      this._state.set("name", value.test.name);
-    }
+    // TODO room name should be based on helpers.team_id
 
-    if (this._state.get("path") === undefined) {
-      this._state.set("path", value.test.path);
-    }
-
-    if (this._state.get("helpers_code") === undefined) {
-      this._state.set("helpers_code", value.helpers);
-    }
-
-    if (value.run) {
-      this._state.set("test_code", value.run.code);
-    } else if (this._state.get("test_code") === undefined) {
-      this._state.set("test_code", value.test.code);
-    }
-
-    this.emit("changed", {});
+    // TODO room name should be based on test_id & branch...
   }
 
   updateCode(code: string): void {
-    this._state.set("test_code", code);
+    // this._state.set("test_code", code);
   }
 }

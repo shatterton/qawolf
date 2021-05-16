@@ -246,15 +246,6 @@ type DeleteTriggerVariables = {
   id: string;
 };
 
-export type SaveEditorVariables = {
-  branch?: string | null;
-  code?: string | null;
-  helpers?: string | null;
-  name?: string | null;
-  path?: string | null;
-  test_id: string;
-};
-
 type SendLoginCodeData = {
   sendLoginCode: {
     email: string;

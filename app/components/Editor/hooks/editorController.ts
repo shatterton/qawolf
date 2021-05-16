@@ -23,21 +23,22 @@ export const useEditorController = (): EditorControllerHook => {
     const editorCtrl = new EditorController();
     setEditorController(editorCtrl);
 
-    editorCtrl.on("changed", ({ key, value }) => {
-      if (key === "test_code") {
-        setCode(value);
-      } else if (key === "name") {
-        setName(value);
-      } else if (key === "path") {
-        setPath(value);
-      }
+    // TODO
+    // editorCtrl.on("changed", ({ key, value }) => {
+    //   if (key === "test_code") {
+    //     setCode(value);
+    //   } else if (key === "name") {
+    //     setName(value);
+    //   } else if (key === "path") {
+    //     setPath(value);
+    //   }
 
-      setHasChanges(!!editorCtrl.getChanges());
-    });
+    //   setHasChanges(!!editorCtrl.getChanges());
+    // });
 
     return () => {
+      editorCtrl.destroy();
       setEditorController(null);
-      editorCtrl._state.removeAllListeners();
     };
   }, []);
 
