@@ -8,7 +8,6 @@ import { editorQuery } from "../../../graphql/queries";
 import { SaveEditorVariables } from "../../../hooks/mutations";
 import { client } from "../../../lib/client";
 import { Editor } from "../../../lib/types";
-import { VersionedMap } from "../../../lib/VersionedMap";
 import { WebsocketProvider } from "y-websocket";
 import { MonacoBinding } from "../hooks/MonacoBinding";
 
@@ -16,7 +15,6 @@ import { MonacoBinding } from "../hooks/MonacoBinding";
 
 export class EditorController extends EventEmitter {
   readonly _doc = new Y.Doc();
-  readonly _state = new VersionedMap();
 
   _branch: string;
   _helpersEditor: editorNs.IStandaloneCodeEditor;
