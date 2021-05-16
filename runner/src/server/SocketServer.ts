@@ -50,11 +50,6 @@ export class SocketServer {
     );
   }
 
-  _emitUsers(): void {
-    const data = this._subscriptions.data("users");
-    this._subscriptions.emit("users", { data, event: "users" });
-  }
-
   _onConnect(socket: Socket): void {
     if (!this._authenticate(socket)) {
       debug(`socket unauthorized ${socket.id}`);
@@ -78,7 +73,6 @@ export class SocketServer {
   _onDisconnect(socket: Socket): void {
     debug(`socket disconnected ${socket.id}`);
     this._subscriptions.disconnect(socket);
-    this._emitUsers();
   }
 
   _onSubscribe(socket: Socket, message: SubscribeMessage): void {
@@ -94,16 +88,11 @@ export class SocketServer {
     } else if (type === "run" && this._runner.progress()) {
       // send current progress if the run is started
       socket.emit("runprogress", this._runner.progress());
-    } else if (type === "users") {
-      // update the current users
-      this._emitUsers();
     }
   }
 
   _onUnsubscribe(socket: Socket, { type }: SubscribeMessage): void {
     this._subscriptions.unsubscribe(socket, type);
-
-    if (type === "users") this._emitUsers();
   }
 
   _publish(

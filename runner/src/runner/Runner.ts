@@ -64,13 +64,13 @@ export class Runner extends EventEmitter {
 
     const environment = new Environment({ codeModel: this._codeModel });
 
-    // reset the logs when a new environment is created
-    this.emit("logs", environment.logger.logs);
-
+    // TODO
     environment.on("codeupdated", (update: CodeUpdate) => {
-      // TODO
       // this._editor.set("test_code", update.code);
     });
+
+    // reset the logs when a new environment is created
+    this.emit("logs", environment.logger.logs);
 
     environment.on("elementchooser", (event: ElementChooserValue) =>
       this.emit("elementchooser", event)

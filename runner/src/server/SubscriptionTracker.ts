@@ -6,29 +6,13 @@ type EmitOptions = {
   event: string;
 };
 
-type User = {
-  email: string;
-  wolfName: string;
-  wolfVariant: string;
-};
-
-type SubscribeData = User | undefined;
-
-export type SubscribeType =
-  | "code"
-  | "editor"
-  | "elementchooser"
-  | "logs"
-  | "run"
-  | "users";
+export type SubscribeType = "code" | "elementchooser" | "logs" | "run";
 
 export type SubscribeMessage = {
   type: SubscribeType;
-  data?: SubscribeData;
 };
 
 type SubscriptionCollection = {
-  data: SubscribeData[];
   ids: string[];
 };
 
@@ -37,17 +21,10 @@ export class SubscriptionTracker {
   readonly _subscriptions = new Map<SubscribeType, SubscriptionCollection>();
 
   constructor() {
-    this._subscriptions.set("code", { data: [], ids: [] });
-    this._subscriptions.set("editor", { data: [], ids: [] });
-    this._subscriptions.set("elementchooser", { data: [], ids: [] });
-    this._subscriptions.set("logs", { data: [], ids: [] });
-    this._subscriptions.set("run", { data: [], ids: [] });
-    this._subscriptions.set("users", { data: [], ids: [] });
-  }
-
-  data(type: SubscribeType): SubscribeData[] {
-    const collection = this._subscriptions.get(type);
-    return collection?.data || [];
+    this._subscriptions.set("code", { ids: [] });
+    this._subscriptions.set("elementchooser", { ids: [] });
+    this._subscriptions.set("logs", { ids: [] });
+    this._subscriptions.set("run", { ids: [] });
   }
 
   disconnect(socket: Socket): void {
@@ -71,13 +48,7 @@ export class SubscriptionTracker {
     this._sockets.set(socket.id, socket);
 
     const collection = this._subscriptions.get(message.type);
-    if (!collection) return;
-
-    const index = collection.ids.indexOf(socket.id);
-    if (index >= 0) {
-      collection.data[index] = message.data;
-    } else {
-      collection.data.push(message.data);
+    if (collection && !collection.ids.includes(socket.id)) {
       collection.ids.push(socket.id);
     }
   }
@@ -88,7 +59,6 @@ export class SubscriptionTracker {
 
     const index = collection.ids.indexOf(socket.id);
     if (index >= 0) {
-      collection.data.splice(index, 1);
       collection.ids.splice(index, 1);
     }
   }
