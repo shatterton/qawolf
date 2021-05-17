@@ -1,9 +1,9 @@
 import { EventEmitter } from "events";
 import type { editor as editorNs } from "monaco-editor/esm/vs/editor/editor.api";
 import * as Y from "yjs";
+import { WebsocketProvider } from "y-websocket";
 
 import { Editor } from "../../../lib/types";
-import { WebsocketProvider } from "y-websocket";
 import { MonacoBinding } from "../hooks/MonacoBinding";
 import { JWT_KEY } from "../../../lib/client";
 
