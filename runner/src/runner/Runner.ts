@@ -1,13 +1,9 @@
 import { EventEmitter } from "events";
-import * as Y from "yjs";
-import { WebsocketProvider } from "y-websocket";
-import ws from "ws";
 
-import { CodeModel } from "../code/CodeModel";
+import { EditorModel } from "../code/EditorModel";
 import { Environment } from "../environment/Environment";
 import { Log } from "../services/Logger";
 import {
-  CodeUpdate,
   ElementChooserValue,
   RunHook,
   RunOptions,
@@ -38,43 +34,16 @@ export const createHooks = (
   return hooks;
 };
 
-// TODO on test code changes
-// this._environment?.updater.updateCode(event.value);
-
 export class Runner extends EventEmitter {
-  _codeModel = new CodeModel();
-  _doc = new Y.Doc();
   _environment?: Environment;
+  _model = new EditorModel();
   _hooks: RunHook[] = [];
   _testProvider: any;
-
-  constructor() {
-    super();
-
-    this.connect();
-
-    this._codeModel.on("codeupdated", (update: CodeUpdate) => {
-      // this._editor.set("test_code", update.code);
-    });
-
-    // this._editor.on("keychanged", (event) => {
-    //   if (event.key === "test_code") {
-    //     this._codeModel.setValue(event.value);
-    //   }
-
-    //   this.emit("keychanged", event);
-    // });
-  }
 
   async _createEnvironment(): Promise<Environment> {
     await this._environment?.close();
 
-    const environment = new Environment({ codeModel: this._codeModel });
-
-    // TODO
-    environment.on("codeupdated", (update: CodeUpdate) => {
-      // this._editor.set("test_code", update.code);
-    });
+    const environment = new Environment({ model: this._model });
 
     // reset the logs when a new environment is created
     this.emit("logs", environment.logger.logs);
@@ -100,21 +69,6 @@ export class Runner extends EventEmitter {
     await this._environment?.close();
   }
 
-  connect(): void {
-    // XXX workaround for https://github.com/yjs/y-websocket/issues/65
-    global.window = { addEventListener: () => {} } as any;
-    // TODO this should be part of the initial connection
-    this._testProvider = new WebsocketProvider(
-      `ws://host.docker.internal:1234`,
-      "test.cko55o88q0001gz3q6np62hho",
-      this._doc,
-      {
-        params: { authorization: process.env.TEMP_AUTH! },
-        WebSocketPolyfill: ws as any,
-      }
-    );
-  }
-
   get logs(): Log[] {
     return this._environment?.logger.logs || [];
   }
@@ -125,8 +79,8 @@ export class Runner extends EventEmitter {
   }
 
   async run(options: RunOptions): Promise<void> {
-    const code = this._doc.getText("monaco").toJSON();
-    options.code = code;
+    options.code = this._model.testCode;
+    options.helpers = this._model.helpersCode;
 
     this._hooks = [];
 

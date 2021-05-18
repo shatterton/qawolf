@@ -11,10 +11,6 @@ export type BrowserName = "chromium" | "firefox" | "webkit";
 
 export type Callback<S = void, T = void> = (data?: S) => T;
 
-export type CodeUpdate = {
-  code: string;
-};
-
 export interface CustomVideoMarkerMetadata {
   lineCode: string;
   lineNum: number;

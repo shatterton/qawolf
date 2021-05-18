@@ -4,28 +4,28 @@ import { omit } from "lodash";
 import { BrowserContext } from "playwright";
 
 import { ElementEvent, Variables, WindowEvent } from "../types";
-import { CodeModel } from "./CodeModel";
+import { EditorModel } from "./EditorModel";
 import { ContextEventCollector } from "./ContextEventCollector";
 import { parseActionExpressions } from "./parseCode";
 import { patchEvent } from "./patchEvent";
 
 type CodeUpdaterOptions = {
-  codeModel: CodeModel;
+  model: EditorModel;
   variables: Variables;
 };
 
 const debug = Debug("qawolf:CodeUpdater");
 
 export class CodeUpdater extends EventEmitter {
-  _codeModel: CodeModel;
   _collector?: ContextEventCollector;
   _context?: BrowserContext;
+  _model: EditorModel;
   _enabledAt: number | false = false;
   _variables: Variables;
 
-  constructor({ codeModel, variables }: CodeUpdaterOptions) {
+  constructor({ model, variables }: CodeUpdaterOptions) {
     super();
-    this._codeModel = codeModel;
+    this._model = model;
     this._variables = variables;
   }
 
@@ -48,7 +48,7 @@ export class CodeUpdater extends EventEmitter {
 
     debug("handle page event %o", omit(event, "frame", "page"));
 
-    const code = this._codeModel.value;
+    const code = this._model.testCode;
 
     const operations = patchEvent({
       code,
@@ -57,7 +57,7 @@ export class CodeUpdater extends EventEmitter {
       variables: this._variables,
     });
 
-    return this._codeModel.update(operations);
+    return this._model.update(operations);
   }
 
   disable(): void {

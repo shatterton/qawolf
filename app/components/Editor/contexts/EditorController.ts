@@ -60,7 +60,7 @@ export class EditorController extends EventEmitter {
     this._testEditor = editor;
     this._monacoBinding = new MonacoBinding(
       monaco,
-      this._doc.getText("monaco"),
+      this._doc.getText("test.monaco"),
       editor.getModel(),
       new Set([editor]),
       this._testProvider.awareness
