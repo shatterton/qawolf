@@ -3,9 +3,9 @@ import type { editor as editorNs } from "monaco-editor/esm/vs/editor/editor.api"
 import * as Y from "yjs";
 import { WebsocketProvider } from "y-websocket";
 
-import { Editor } from "../../../lib/types";
 import { MonacoBinding } from "../hooks/MonacoBinding";
 import { JWT_KEY } from "../../../lib/client";
+import { Editor } from "../../../lib/types";
 
 export class EditorController extends EventEmitter {
   readonly _doc = new Y.Doc();

@@ -79,9 +79,6 @@ export class Runner extends EventEmitter {
   }
 
   async run(options: RunOptions): Promise<void> {
-    options.code = this._model.testCode;
-    options.helpers = this._model.helpersCode;
-
     this._hooks = [];
 
     if (!this._environment || options.restart) {
