@@ -11,15 +11,14 @@ export class EditorController extends EventEmitter {
   readonly _doc = new Y.Doc();
 
   _branch: string;
-
+  _helpersBinding: MonacoBinding;
   _helpersEditor: editorNs.IStandaloneCodeEditor;
-  _helpersProvider: WebsocketProvider;
-
+  _testBinding: MonacoBinding;
   _testEditor: editorNs.IStandaloneCodeEditor;
+
   _testProvider: WebsocketProvider;
 
   _value: Editor;
-  _monacoBinding: MonacoBinding;
 
   get code(): string {
     return "";
@@ -37,28 +36,28 @@ export class EditorController extends EventEmitter {
     this._branch = branch;
   }
 
-  setHelpersEditor(editor: editorNs.IStandaloneCodeEditor): void {
+  setHelpersEditor(monaco, editor: editorNs.IStandaloneCodeEditor): void {
+    if (!this._testProvider) {
+      throw new Error("TODO: set test editor and test id out of order");
+    }
+
     this._helpersEditor = editor;
-
-    // hydrate with current value
-    // const value = this._state.get("helpers_code");
-    // if (value !== undefined) editor.setValue(value);
-
-    // update state when editor changes
-    // editor.onDidChangeModelContent(() => {
-    //   this._state.set("helpers_code", editor.getValue());
-    // });
+    this._helpersBinding = new MonacoBinding(
+      monaco,
+      this._doc.getText("helpers.monaco"),
+      editor.getModel(),
+      new Set([editor]),
+      this._testProvider.awareness
+    );
   }
 
   setTestEditor(monaco, editor: editorNs.IStandaloneCodeEditor): void {
     if (!this._testProvider) {
-      throw new Error(
-        "Need to update to allow setting test editor and test id out of order"
-      );
+      throw new Error("TODO: set test editor and test id out of order");
     }
 
     this._testEditor = editor;
-    this._monacoBinding = new MonacoBinding(
+    this._testBinding = new MonacoBinding(
       monaco,
       this._doc.getText("test.monaco"),
       editor.getModel(),
@@ -82,10 +81,6 @@ export class EditorController extends EventEmitter {
     }
 
     this._value = value;
-
-    // TODO room name should be based on helpers.team_id
-
-    // TODO room name should be based on test_id & branch...
   }
 
   updateCode(code: string): void {

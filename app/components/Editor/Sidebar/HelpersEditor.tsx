@@ -24,7 +24,7 @@ export default function HelpersEditor({
   useEnvTypes({ env, monaco });
 
   const editorDidMount = ({ editor, monaco }) => {
-    controller.setHelpersEditor(editor);
+    controller.setHelpersEditor(monaco, editor);
     setMonaco(monaco);
     includeTypes(monaco);
   };
